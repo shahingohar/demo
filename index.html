@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+        <title>Babylon Template</title>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+        </style>
+
+        <script src="https://preview.babylonjs.com/babylon.js"></script>
+        <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+
+        <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+        <script src="https://code.jquery.com/pep/0.4.3/pep.js"></script>
+    </head>
+
+   <body>
+
+    <canvas id="renderCanvas" touch-action="none"></canvas> //touch-action="none" for best results from PEP
+
+    <script>
+        var canvas = document.getElementById("renderCanvas"); // Get the canvas element 
+        var engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
+
+        /******* Add the create scene function ******/
+        var createScene = function () {
+    // Create basic world
+    var scene = new BABYLON.Scene(engine);
+    // var camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 5, -5), scene);
+    // camera.setTarget(BABYLON.Vector3.Zero());
+    // camera.attachControl(canvas, true);
+
+    var camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 4, 3,
+         new BABYLON.Vector3(-15, 0, -10), scene);
+        camera.attachControl(canvas, true);
+
+
+    var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
+    // var ground = BABYLON.Mesh.CreateGround("ground1", 6, 6, 2, scene);
+    // ground.position.y= -1
+    scene.createDefaultVRExperience({floorMeshes:[]})
+
+    BABYLON.SceneLoader.LoadAssetContainer("scene.gltf", "", scene, function (container) {
+        
+        // Add loaded file to the scene
+        container.addAllToScene();
+        
+        // Scale and position the loaded model (First mesh loaded from gltf is the root node)
+        container.meshes[0].scaling.scaleInPlace(0.1)
+        // container.meshes[0].position.x = +20.0
+        // container.meshes[0].position.z = +10.0
+
+        // wrap in bounding box mesh to avoid picking perf hit
+        var gltfMesh = container.meshes[0]
+        var boundingBox = BABYLON.BoundingBoxGizmo.MakeNotPickableAndWrapInBoundingBox(gltfMesh)
+        
+        // Create bounding box gizmo
+        var utilLayer = new BABYLON.UtilityLayerRenderer(scene)
+        utilLayer.utilityLayerScene.autoClearDepthAndStencil = false;
+        var gizmo = new BABYLON.BoundingBoxGizmo(BABYLON.Color3.FromHexString("#0984e3"), utilLayer)
+        gizmo.attachedMesh = boundingBox;
+
+        // Create behaviors to drag and scale with pointers in VR
+        var sixDofDragBehavior = new BABYLON.SixDofDragBehavior()
+        boundingBox.addBehavior(sixDofDragBehavior)
+        var multiPointerScaleBehavior = new BABYLON.MultiPointerScaleBehavior()
+        boundingBox.addBehavior(multiPointerScaleBehavior)
+
+        // Create app bar
+        var appBar = new BABYLON.TransformNode("");
+        appBar.scaling.scaleInPlace(0.2)
+
+        //attach app bar to bounding box
+        var behavior = new BABYLON.AttachToBoxBehavior(appBar);
+        boundingBox.addBehavior(behavior);
+    });
+
+    
+    return scene;
+        };
+        /******* End of the create scene function ******/    
+
+        var scene = createScene(); //Call the createScene function
+
+        // Register a render loop to repeatedly render the scene
+        engine.runRenderLoop(function () { 
+                scene.render();
+        });
+
+        // Watch for browser/canvas resize events
+        window.addEventListener("resize", function () { 
+                engine.resize();
+        });
+    </script>
+
+   </body>
+
+</html>
